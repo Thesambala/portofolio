@@ -354,6 +354,9 @@
     setText('#certShowing', items.length);
     setText('#certFilterLabel', currentCertFilter === 'All' ? 'All categories' : currentCertFilter);
 
+    const featured = list.filter((c) => c.featured).slice(0, 3);
+    const featuredIds = new Set(featured.map((c) => c.id));
+
     const featuredWrap = $('#certificateFeatured');
     if (featuredWrap) {
       if (isFiltered) {
@@ -361,12 +364,12 @@
         featuredWrap.innerHTML = '';
       } else {
         featuredWrap.hidden = false;
-        const featured = list.filter((c) => c.featured).slice(0, 3);
         featuredWrap.innerHTML = featured.map((c, i) => certificateCard(c, i, true)).join('');
       }
     }
 
-    if ($('#certificateGrid')) $('#certificateGrid').innerHTML = items.map((c, i) => certificateCard(c, i)).join('') || emptyState('No certificate found', 'Try another keyword or category.');
+    const gridItems = isFiltered ? items : items.filter((c) => !featuredIds.has(c.id));
+    if ($('#certificateGrid')) $('#certificateGrid').innerHTML = gridItems.map((c, i) => certificateCard(c, i)).join('') || emptyState('No certificate found', 'Try another keyword or category.');
     // Re-rendering certificates after filter/search creates new cards.
     // Mark them visible immediately so filtered results never look empty.
     $$('.cert-card').forEach((card) => card.classList.add('show'));
