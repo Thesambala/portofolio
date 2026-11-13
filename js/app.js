@@ -1,5 +1,5 @@
 (() => {
-  const STORE_KEY = 'zilan_professional_portfolio_v4_certificates';
+  const STORE_KEY = 'zilan_professional_portfolio_v5_certificates';
   const LANG_KEY = 'zilan_professional_lang';
   const THEME_KEY = 'zilan_professional_theme';
   const AUTH_KEY = 'zilan_professional_auth';
@@ -379,7 +379,7 @@
     return `<article class="cert-card reveal show ${compact ? 'cert-card-featured' : ''}" style="transition-delay:${i * 55}ms">
       <div class="cert-media"><img src="${esc(c.thumbnail)}" alt="${esc(c.title)} certificate preview" loading="lazy" decoding="async"><span>${esc(c.fileType || 'PDF')}</span></div>
       <div class="cert-body">
-        <small>${esc(c.category)} • ${esc(c.year)}</small>
+        <small>${compact || c.featured ? '<span class="cert-featured-tag">★ Featured</span> • ' : ''}${esc(c.category)} • ${esc(c.year)}</small>
         <h3>${esc(c.title)}</h3>
         <p>${esc(c.issuer)}</p>
         <div class="project-actions">

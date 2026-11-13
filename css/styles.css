@@ -2340,7 +2340,8 @@ html[data-theme="light"] .blog-card p { color: #475569 !important; }
 .cert-body small { color: var(--accent); text-transform: uppercase; letter-spacing: .11em; font-weight: 1000; font-size: 11px; }
 .cert-body h3 { margin: 10px 0 9px; font-size: 23px; line-height: 1.08; letter-spacing: -.04em; }
 .cert-body p { color: var(--muted); line-height: 1.6; margin: 0 0 16px; }
-.cert-card-featured { border-color: rgba(20,184,166,.34); }
+.cert-card-featured { border-color: rgba(56,189,248,.42); box-shadow: 0 16px 40px rgba(14,165,233,.08); }
+.cert-featured-tag { color: var(--accent); font-weight: 1000; letter-spacing: .08em; }
 .certificate-modal .certificate-detail > img { object-fit: cover; background: #f8fafc; }
 .certificate-meta { grid-template-columns: repeat(2, minmax(0,1fr)); margin: 18px 0 0; }
 html[data-theme="light"] .cert-summary article,
