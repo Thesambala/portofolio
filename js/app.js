@@ -1,22 +1,30 @@
 (() => {
-  const STORE_KEY = 'aslam_lando_portfolio_v2';
-  const LANG_KEY = 'aslam_lando_lang';
-  const THEME_KEY = 'aslam_lando_theme';
-  const AUTH_KEY = 'aslam_lando_auth';
-  const ADMIN_EMAIL = 'admin@aslam.dev';
-  const ADMIN_PASSWORD = 'aslam123';
+  const STORE_KEY = 'zilan_professional_portfolio_v4_certificates';
+  const LANG_KEY = 'zilan_professional_lang';
+  const THEME_KEY = 'zilan_professional_theme';
+  const AUTH_KEY = 'zilan_professional_auth';
+  const ADMIN_EMAIL = 'admin@zilan.dev';
+  const ADMIN_PASSWORD = 'zilan123';
 
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => Array.from(root.querySelectorAll(s));
+  const pathName = location.pathname.split('/').pop() || 'index.html';
+  const isAdminLoginPage = pathName === 'admin-login.html';
+  const isAdminDashboardPage = pathName === 'admin.html';
+  const isAdminPage = isAdminLoginPage || isAdminDashboardPage;
+  const on = (s, event, handler) => { const el = $(s); if (el) el.addEventListener(event, handler); };
+  const setText = (s, value) => { const el = $(s); if (el) el.textContent = value; };
   const clone = (o) => JSON.parse(JSON.stringify(o));
   const uid = () => `id_${Date.now()}_${Math.random().toString(16).slice(2)}`;
   const esc = (value = '') => String(value).replace(/[&<>'"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const pick = (obj, base) => lang === 'en' && obj[`${base}En`] ? obj[`${base}En`] : obj[base];
+  const norm = (value = '') => String(value).toLowerCase().replace(/\s+/g, ' ').trim();
 
   let data = loadData();
   let lang = localStorage.getItem(LANG_KEY) || data.settings.defaultLanguage || 'id';
   let theme = localStorage.getItem(THEME_KEY) || 'dark';
   let currentFilter = 'All';
+  let currentCertFilter = 'All';
   let activeAdminTab = 'overview';
   let editing = null;
 
@@ -32,6 +40,7 @@
   function t(key) { return (window.I18N[lang] && window.I18N[lang][key]) || window.I18N.id[key] || key; }
   function toast(msg) {
     const el = $('#toast');
+    if (!el) return;
     el.textContent = msg;
     el.classList.add('show');
     clearTimeout(el._timer);
@@ -49,7 +58,7 @@
     lang = next;
     localStorage.setItem(LANG_KEY, lang);
     document.documentElement.lang = lang;
-    $('#langBtn').textContent = lang.toUpperCase();
+    setText('#langBtn', lang.toUpperCase());
     translateStatic();
     renderAll();
   }
@@ -63,56 +72,83 @@
     setLang(lang);
     bindEvents();
     route();
-    $('#year').textContent = new Date().getFullYear();
-    setTimeout(() => $('#loader').classList.add('hide'), 850);
+    setText('#year', new Date().getFullYear());
+    setTimeout(() => $('#loader')?.classList.add('hide'), 650);
   }
 
   function bindEvents() {
-    window.addEventListener('scroll', onScroll, { passive: true });
+    let scrollFrame = 0;
+    window.addEventListener('scroll', () => {
+      if (scrollFrame) return;
+      scrollFrame = requestAnimationFrame(() => { scrollFrame = 0; onScroll(); });
+    }, { passive: true });
     window.addEventListener('hashchange', route);
 
-    $('#themeBtn').addEventListener('click', () => setTheme(theme === 'dark' ? 'light' : 'dark'));
-    $('#langBtn').addEventListener('click', () => setLang(lang === 'id' ? 'en' : 'id'));
-    $('#menuBtn').addEventListener('click', () => $('#mobileDrawer').classList.toggle('show'));
-    $$('#mobileDrawer a').forEach((a) => a.addEventListener('click', () => $('#mobileDrawer').classList.remove('show')));
-    $('#projectSearch').addEventListener('input', renderProjects);
-    $('#contactForm').addEventListener('submit', handleContact);
-    $('#lockHero').addEventListener('click', () => {
-      $('#profileLock').classList.toggle('locked');
-      $('#lockHero').textContent = $('#profileLock').classList.contains('locked') ? 'locked' : 'tap to lock';
+    on('#themeBtn', 'click', () => setTheme(theme === 'dark' ? 'light' : 'dark'));
+    on('#langBtn', 'click', () => setLang(lang === 'id' ? 'en' : 'id'));
+    on('#menuBtn', 'click', () => $('#mobileDrawer')?.classList.toggle('show'));
+    $$('#mobileDrawer a').forEach((a) => a.addEventListener('click', () => $('#mobileDrawer')?.classList.remove('show')));
+    on('#projectSearch', 'input', renderProjects);
+    on('#certificateSearch', 'input', renderCertificates);
+    const certificateTabs = $('#certificateTabs');
+    if (certificateTabs) {
+      certificateTabs.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-cert-filter]');
+        if (!btn) return;
+        currentCertFilter = btn.dataset.certFilter || 'All';
+        renderCertificateFilters();
+        renderCertificates();
+      });
+    }
+    on('#contactForm', 'submit', handleContact);
+    on('#lockHero', 'click', () => {
+      $('#profileLock')?.classList.toggle('locked');
+      setText('#lockHero', $('#profileLock')?.classList.contains('locked') ? 'locked' : 'tap to lock');
     });
 
-    $('#quickSearchBtn').addEventListener('click', openQuickSearch);
-    $('#quickInput').addEventListener('input', renderQuickSearch);
+    on('#quickSearchBtn', 'click', openQuickSearch);
+    on('#quickInput', 'input', renderQuickSearch);
     $$('[data-close-search]').forEach((el) => el.addEventListener('click', closeQuickSearch));
     $$('[data-close-modal]').forEach((el) => el.addEventListener('click', closeProjectModal));
+    $$('[data-close-certificate]').forEach((el) => el.addEventListener('click', closeCertificateModal));
     $$('[data-close-admin]').forEach((el) => el.addEventListener('click', closeAdminModal));
-    $('#loginForm').addEventListener('submit', handleLogin);
-    $('#logoutBtn').addEventListener('click', () => { localStorage.removeItem(AUTH_KEY); route(); toast('Logged out'); });
-    $('#adminThemeBtn').addEventListener('click', () => setTheme(theme === 'dark' ? 'light' : 'dark'));
+    on('#loginForm', 'submit', handleLogin);
+    on('#logoutBtn', 'click', () => { localStorage.removeItem(AUTH_KEY); toast('Logged out'); location.href = 'admin-login.html'; });
+    on('#adminThemeBtn', 'click', () => setTheme(theme === 'dark' ? 'light' : 'dark'));
     $$('.admin-sidebar [data-admin-tab]').forEach((btn) => btn.addEventListener('click', () => { activeAdminTab = btn.dataset.adminTab; renderAdmin(); }));
-    $('#adminEditForm').addEventListener('submit', saveAdminEdit);
+    on('#adminEditForm', 'submit', saveAdminEdit);
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openQuickSearch(); }
-      if (e.key === 'Escape') { closeProjectModal(); closeQuickSearch(); closeAdminModal(); }
+      if (e.key === 'Escape') { closeProjectModal(); closeCertificateModal(); closeQuickSearch(); closeAdminModal(); }
     });
+    const canUsePointerEffects = matchMedia('(pointer:fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches && !isAdminPage;
+    let pointerFrame = 0;
+    let lastPointerEvent = null;
     document.addEventListener('mousemove', (e) => {
-      const cursor = $('.cursor');
-      if (cursor) { cursor.style.left = `${e.clientX}px`; cursor.style.top = `${e.clientY}px`; }
-      updateSpotlight(e);
-      updateTilt(e);
-    });
+      if (!canUsePointerEffects) return;
+      lastPointerEvent = e;
+      if (pointerFrame) return;
+      pointerFrame = requestAnimationFrame(() => {
+        pointerFrame = 0;
+        const event = lastPointerEvent;
+        const cursor = $('.cursor');
+        if (cursor) { cursor.style.left = `${event.clientX}px`; cursor.style.top = `${event.clientY}px`; }
+        updateSpotlight(event);
+        updateTilt(event);
+      });
+    }, { passive: true });
   }
 
   function onScroll() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
-    $('#scrollProgress').style.width = `${Math.min(100, Math.max(0, (scrollY / max) * 100))}%`;
-    $('#topbar').classList.toggle('scrolled', scrollY > 28);
+    const progress = $('#scrollProgress');
+    if (progress) progress.style.width = `${Math.min(100, Math.max(0, (scrollY / max) * 100))}%`;
+    $('#topbar')?.classList.toggle('scrolled', scrollY > 28);
     updateActiveNav();
   }
   function updateActiveNav() {
-    const ids = ['home', 'about', 'projects', 'stack', 'journey', 'contact'];
+    const ids = ['home', 'about', 'projects', 'stack', 'certificates', 'journey', 'blog', 'contact'];
     let current = 'home';
     ids.forEach((id) => {
       const el = document.getElementById(id);
@@ -133,8 +169,11 @@
     const r = card.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width - .5;
     const y = (e.clientY - r.top) / r.height - .5;
-    card.style.transform = `perspective(1100px) rotateY(${x * 9}deg) rotateX(${-y * 9}deg)`;
-    card.addEventListener('mouseleave', () => card.style.transform = '', { once: true });
+    card.style.transform = `perspective(1100px) rotateY(${x * 6}deg) rotateX(${-y * 6}deg)`;
+    if (!card._tiltBound) {
+      card._tiltBound = true;
+      card.addEventListener('mouseleave', () => { card.style.transform = ''; card._tiltBound = false; }, { once: true });
+    }
   }
   function observeReveal() {
     const io = new IntersectionObserver((entries) => {
@@ -145,21 +184,24 @@
         }
       });
     }, { threshold: .12 });
-    $$('.reveal, .focus-card, .project-card, .stack-card, .journey-item, .blog-card').forEach((el) => io.observe(el));
+    $$('.reveal, .focus-card, .project-card, .stack-card, .journey-item, .blog-card, .cert-card').forEach((el) => io.observe(el));
   }
 
   function renderAll() {
     translateStatic();
-    renderFocus();
-    renderFilters();
-    renderProjects();
-    renderHall();
-    renderStack();
-    renderJourney();
-    renderBlog();
-    renderQuickSearch();
-    if (!$('#adminApp').hidden) renderAdmin();
-    setTimeout(observeReveal, 30);
+    if ($('#publicApp')) {
+      if ($('#focusGrid')) renderFocus();
+      if ($('#filterTabs')) renderFilters();
+      if ($('#projectGrid') && $('#projectSearch')) renderProjects();
+      if ($('#hallRail')) renderHall();
+      if ($('#stackGrid')) renderStack();
+      if ($('#certificateGrid')) { renderCertificateFilters(); renderCertificates(); }
+      if ($('#journeyRoad')) renderJourney();
+      if ($('#blogGrid')) renderBlog();
+      setTimeout(observeReveal, 30);
+    }
+    if ($('#quickResults')) renderQuickSearch();
+    if ($('#adminApp') && !$('#adminApp').hidden) renderAdmin();
   }
 
   function renderFocus() {
@@ -192,7 +234,7 @@
   }
   function renderFeatured(p) {
     $('#featuredSystem').innerHTML = `
-      <div class="feature-media"><img src="${esc(p.image)}" alt="${esc(p.title)} screenshot"></div>
+      <div class="feature-media"><img src="${esc(p.image)}" alt="${esc(p.title)} screenshot" loading="lazy" decoding="async"></div>
       <div class="feature-copy">
         <span class="project-label">Featured / ${esc(p.category)}</span>
         <h3>${esc(p.title)}</h3>
@@ -207,7 +249,7 @@
   }
   function projectCard(p, i) {
     return `<article class="project-card reveal" style="transition-delay:${i * 55}ms">
-      <img src="${esc(p.image)}" alt="${esc(p.title)} screenshot">
+      <img src="${esc(p.image)}" alt="${esc(p.title)} screenshot" loading="lazy" decoding="async">
       <div class="project-card-body">
         <span class="project-label">${esc(p.category)}</span>
         <h3>${esc(p.title)}</h3>
@@ -221,11 +263,12 @@
     </article>`;
   }
   function openProject(id) {
+    if (!$('#projectModal') || !$('#modalContent')) return;
     const p = data.projects.find((x) => x.id === id);
     if (!p) return;
     $('#modalContent').innerHTML = `
       <div class="case-hero">
-        <img src="${esc(p.image)}" alt="${esc(p.title)} screenshot">
+        <img src="${esc(p.image)}" alt="${esc(p.title)} screenshot" loading="lazy" decoding="async">
         <div class="case-copy">
           <span class="project-label">${esc(p.category)}</span>
           <h2>${esc(p.title)}</h2>
@@ -249,12 +292,12 @@
     document.body.classList.add('modal-open');
   }
   function caseBox(title, text) { return `<article class="case-box"><b>${esc(title)}</b><p>${esc(text)}</p></article>`; }
-  function closeProjectModal() { $('#projectModal').hidden = true; document.body.classList.remove('modal-open'); }
+  function closeProjectModal() { if ($('#projectModal')) $('#projectModal').hidden = true; document.body.classList.remove('modal-open'); }
 
   function renderHall() {
     $('#hallRail').innerHTML = data.projects.map((p, i) => `
       <article class="hall-item reveal" style="transition-delay:${i * 65}ms">
-        <img src="${esc(p.image)}" alt="${esc(p.title)} screenshot"><span>${String(i + 1).padStart(2, '0')} / ${esc(p.title.split('—')[0].trim())}</span>
+        <img src="${esc(p.image)}" alt="${esc(p.title)} screenshot" loading="lazy" decoding="async"><span>${String(i + 1).padStart(2, '0')} / ${esc(p.title.split('—')[0].trim())}</span>
       </article>
     `).join('');
   }
@@ -285,6 +328,91 @@
     `).join('');
   }
 
+  function certificateCategories() {
+    return ['All', ...Array.from(new Set((data.certificates || []).map((c) => c.category)))];
+  }
+  function renderCertificateFilters() {
+    const tabs = $('#certificateTabs');
+    if (!tabs) return;
+    if (!certificateCategories().includes(currentCertFilter)) currentCertFilter = 'All';
+    tabs.innerHTML = certificateCategories().map((cat) => `<button type="button" class="${cat === currentCertFilter ? 'active' : ''}" data-cert-filter="${esc(cat)}" aria-pressed="${cat === currentCertFilter}">${esc(cat)}</button>`).join('');
+  }
+  function certificateMatches(c, q) {
+    const text = norm([c.title, c.issuer, c.category, c.year, pick(c, 'desc')].join(' '));
+    const activeCategory = currentCertFilter === 'All' || norm(c.category) === norm(currentCertFilter);
+    return (!q || text.includes(q)) && activeCategory;
+  }
+  function renderCertificates() {
+    const list = data.certificates || [];
+    const q = norm($('#certificateSearch')?.value || '');
+    const isFiltered = currentCertFilter !== 'All' || Boolean(q);
+    const items = list.filter((c) => certificateMatches(c, q));
+
+    setText('#certTotal', list.length);
+    setText('#certFeatured', list.filter((c) => c.featured).length);
+    setText('#certCategoryTotal', certificateCategories().length - 1);
+    setText('#certShowing', items.length);
+    setText('#certFilterLabel', currentCertFilter === 'All' ? 'All categories' : currentCertFilter);
+
+    const featuredWrap = $('#certificateFeatured');
+    if (featuredWrap) {
+      if (isFiltered) {
+        featuredWrap.hidden = true;
+        featuredWrap.innerHTML = '';
+      } else {
+        featuredWrap.hidden = false;
+        const featured = list.filter((c) => c.featured).slice(0, 3);
+        featuredWrap.innerHTML = featured.map((c, i) => certificateCard(c, i, true)).join('');
+      }
+    }
+
+    if ($('#certificateGrid')) $('#certificateGrid').innerHTML = items.map((c, i) => certificateCard(c, i)).join('') || emptyState('No certificate found', 'Try another keyword or category.');
+    // Re-rendering certificates after filter/search creates new cards.
+    // Mark them visible immediately so filtered results never look empty.
+    $$('.cert-card').forEach((card) => card.classList.add('show'));
+    $$('.cert-card [data-certificate]').forEach((btn) => btn.addEventListener('click', () => openCertificate(btn.dataset.certificate)));
+  }
+  function certificateCard(c, i, compact = false) {
+    return `<article class="cert-card reveal show ${compact ? 'cert-card-featured' : ''}" style="transition-delay:${i * 55}ms">
+      <div class="cert-media"><img src="${esc(c.thumbnail)}" alt="${esc(c.title)} certificate preview" loading="lazy" decoding="async"><span>${esc(c.fileType || 'PDF')}</span></div>
+      <div class="cert-body">
+        <small>${esc(c.category)} • ${esc(c.year)}</small>
+        <h3>${esc(c.title)}</h3>
+        <p>${esc(c.issuer)}</p>
+        <div class="project-actions">
+          <button class="primary-link" data-certificate="${esc(c.id)}">View Certificate</button>
+          <a class="primary-link" href="${esc(c.file)}" target="_blank" rel="noreferrer">Open PDF</a>
+        </div>
+      </div>
+    </article>`;
+  }
+  function openCertificate(id) {
+    if (!$('#certificateModal') || !$('#certificateModalContent')) return;
+    const c = (data.certificates || []).find((x) => x.id === id);
+    if (!c) return;
+    $('#certificateModalContent').innerHTML = `<div class="case-hero certificate-detail">
+      <img src="${esc(c.thumbnail)}" alt="${esc(c.title)} preview" loading="lazy" decoding="async">
+      <div class="case-copy">
+        <span class="project-label">${esc(c.category)} / ${esc(c.fileType || 'PDF')}</span>
+        <h2>${esc(c.title)}</h2>
+        <p>${esc(pick(c, 'desc'))}</p>
+        <div class="case-grid certificate-meta">
+          ${caseBox('Issuer', c.issuer)}
+          ${caseBox('Year', c.year)}
+          ${caseBox('Credential Type', c.category)}
+          ${caseBox('File', c.fileType || 'PDF')}
+        </div>
+        <div class="project-actions" style="margin-top:18px">
+          <a class="primary-link" href="${esc(c.file)}" target="_blank" rel="noreferrer">Open Full PDF</a>
+          <a class="primary-link" href="${esc(c.file)}" download>Download Proof</a>
+        </div>
+      </div>
+    </div>`;
+    $('#certificateModal').hidden = false;
+    document.body.classList.add('modal-open');
+  }
+  function closeCertificateModal() { if ($('#certificateModal')) $('#certificateModal').hidden = true; document.body.classList.remove('modal-open'); }
+
   function handleContact(e) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -294,36 +422,55 @@
     toast(lang === 'id' ? 'Pesan berhasil disimpan di admin panel.' : 'Message saved in admin panel.');
   }
 
-  function openQuickSearch() { $('#quickSearch').hidden = false; $('#quickInput').focus(); renderQuickSearch(); document.body.classList.add('modal-open'); }
-  function closeQuickSearch() { $('#quickSearch').hidden = true; document.body.classList.remove('modal-open'); }
+  function openQuickSearch() { if (!$('#quickSearch') || !$('#quickInput')) return; $('#quickSearch').hidden = false; $('#quickInput').focus(); renderQuickSearch(); document.body.classList.add('modal-open'); }
+  function closeQuickSearch() { if ($('#quickSearch')) $('#quickSearch').hidden = true; document.body.classList.remove('modal-open'); }
   function renderQuickSearch() {
     const q = ($('#quickInput')?.value || '').toLowerCase();
     const pages = [
-      { title: 'Home', href: '#home', meta: 'Page' }, { title: 'About', href: '#about', meta: 'Page' }, { title: 'Projects', href: '#projects', meta: 'Page' }, { title: 'Stack', href: '#stack', meta: 'Page' }, { title: 'Admin', href: '#admin-login', meta: 'CMS' },
+      { title: 'Home', href: 'index.html#home', meta: 'Page' }, { title: 'About', href: 'index.html#about', meta: 'Page' }, { title: 'Projects', href: 'index.html#projects', meta: 'Page' }, { title: 'Stack', href: 'index.html#stack', meta: 'Page' }, { title: 'Admin', href: 'admin-login.html', meta: 'CMS' },
       ...data.projects.map((p) => ({ title: p.title, href: '#projects', meta: p.category, project: p.id })),
+      ...(data.certificates || []).map((c) => ({ title: c.title, href: '#certificates', meta: c.category, certificate: c.id })),
       ...Object.entries(data.skills).flatMap(([group, items]) => items.map((title) => ({ title, href: '#stack', meta: group })))
     ].filter((x) => `${x.title} ${x.meta}`.toLowerCase().includes(q)).slice(0, 12);
-    $('#quickResults').innerHTML = pages.map((x) => `<div class="quick-item" data-href="${esc(x.href)}" data-project="${esc(x.project || '')}"><strong>${esc(x.title)}</strong><small>${esc(x.meta)}</small></div>`).join('') || emptyState('No result', 'Try project or skill name.');
+    if (!$('#quickResults')) return;
+    $('#quickResults').innerHTML = pages.map((x) => `<div class="quick-item" data-href="${esc(x.href)}" data-project="${esc(x.project || '')}" data-certificate="${esc(x.certificate || '')}"><strong>${esc(x.title)}</strong><small>${esc(x.meta)}</small></div>`).join('') || emptyState('No result', 'Try project or skill name.');
     $$('#quickResults .quick-item').forEach((item) => item.addEventListener('click', () => {
       closeQuickSearch();
-      location.hash = item.dataset.href;
+      if (item.dataset.href.includes('.html')) location.href = item.dataset.href;
+      else location.hash = item.dataset.href;
       if (item.dataset.project) setTimeout(() => openProject(item.dataset.project), 250);
+      if (item.dataset.certificate) setTimeout(() => openCertificate(item.dataset.certificate), 250);
     }));
   }
 
   function route() {
-    const isAdmin = location.hash === '#admin-login' || location.hash === '#admin';
-    $('#publicApp').hidden = isAdmin;
-    $('.footer').hidden = isAdmin;
-    $('#adminApp').hidden = !isAdmin;
-    if (isAdmin) renderAdminShell();
-    else setTimeout(observeReveal, 40);
+    const publicApp = $('#publicApp');
+    const footer = $('.footer');
+    const adminApp = $('#adminApp');
+    if (!isAdminPage && (location.hash === '#admin-login' || location.hash === '#admin')) {
+      location.href = 'admin-login.html';
+      return;
+    }
+    if (isAdminPage) {
+      if (publicApp) publicApp.hidden = true;
+      if (footer) footer.hidden = true;
+      if (adminApp) adminApp.hidden = false;
+      renderAdminShell();
+      return;
+    }
+    if (publicApp) publicApp.hidden = false;
+    if (footer) footer.hidden = false;
+    if (adminApp) adminApp.hidden = true;
+    setTimeout(observeReveal, 40);
   }
   function renderAdminShell() {
+    if (!$('#adminApp')) return;
     const auth = localStorage.getItem(AUTH_KEY) === '1';
-    $('#adminLogin').hidden = auth;
-    $('#adminDashboard').hidden = !auth;
-    if (auth) renderAdmin();
+    if (isAdminLoginPage && auth) { location.href = 'admin.html'; return; }
+    if (isAdminDashboardPage && !auth) { location.href = 'admin-login.html'; return; }
+    if ($('#adminLogin')) $('#adminLogin').hidden = !isAdminLoginPage;
+    if ($('#adminDashboard')) $('#adminDashboard').hidden = !isAdminDashboardPage || !auth;
+    if (auth && isAdminDashboardPage) renderAdmin();
   }
   function handleLogin(e) {
     e.preventDefault();
@@ -331,20 +478,20 @@
     if (fd.get('email') === ADMIN_EMAIL && fd.get('password') === ADMIN_PASSWORD) {
       localStorage.setItem(AUTH_KEY, '1');
       toast('Welcome, Admin');
-      renderAdminShell();
+      setTimeout(() => { location.href = 'admin.html'; }, 250);
     } else toast('Email atau password salah.');
   }
   function renderAdmin() {
-    if ($('#adminApp').hidden || $('#adminDashboard').hidden) return;
+    if (!$('#adminApp') || !$('#adminDashboard') || $('#adminApp').hidden || $('#adminDashboard').hidden) return;
     $$('.admin-sidebar [data-admin-tab]').forEach((b) => b.classList.toggle('active', b.dataset.adminTab === activeAdminTab));
     $('#adminTitle').textContent = activeAdminTab.charAt(0).toUpperCase() + activeAdminTab.slice(1);
-    const map = { overview: renderOverview, profile: renderProfile, projects: renderAdminProjects, education: renderEducationAdmin, skills: renderSkillsAdmin, experience: renderExperienceAdmin, blog: renderBlogAdmin, messages: renderMessagesAdmin, settings: renderSettingsAdmin };
+    const map = { overview: renderOverview, profile: renderProfile, projects: renderAdminProjects, certificates: renderCertificatesAdmin, education: renderEducationAdmin, skills: renderSkillsAdmin, experience: renderExperienceAdmin, blog: renderBlogAdmin, messages: renderMessagesAdmin, settings: renderSettingsAdmin };
     $('#adminContent').innerHTML = (map[activeAdminTab] || renderOverview)();
     bindAdminContent();
   }
   function renderOverview() {
     return `<div class="admin-cards">
-      ${adminCard('Projects', data.projects.length)}${adminCard('Skills', Object.values(data.skills).flat().length)}${adminCard('Blog Posts', data.blog.length)}${adminCard('Messages', data.messages.length)}
+      ${adminCard('Projects', data.projects.length)}${adminCard('Certificates', (data.certificates || []).length)}${adminCard('Skills', Object.values(data.skills).flat().length)}${adminCard('Messages', data.messages.length)}
       ${adminCard('Languages', 'ID/EN')}${adminCard('Status', data.settings.maintenance ? 'Maintenance' : 'Live')}${adminCard('Featured', data.projects.find(p => p.featured)?.title.split('—')[0] || 'None')}${adminCard('Theme', data.settings.themeColor)}
     </div>`;
   }
@@ -355,6 +502,10 @@
   }
   function renderAdminProjects() {
     return `<div class="admin-toolbar"><h3>Manage Projects</h3><button class="btn-primary" data-add="projects">Add Project</button></div>${adminTable(['Title','Category','Tech','Actions'], data.projects.map((p) => [`<strong>${esc(p.title)}</strong>`, esc(p.category), p.tech.slice(0,4).join(', '), rowActions('projects', p.id)]))}`;
+  }
+  function renderCertificatesAdmin() {
+    const list = data.certificates || [];
+    return `<div class="admin-toolbar"><h3>Manage Certificates</h3><button class="btn-primary" data-add="certificates">Add Certificate</button></div>${adminTable(['Title','Issuer','Category','Year','Actions'], list.map((c, i) => [`<strong>${esc(c.title)}</strong>`, esc(c.issuer), esc(c.category), esc(c.year), rowActions('certificates', i)]))}`;
   }
   function renderEducationAdmin() {
     return `<div class="admin-toolbar"><h3>Manage Education</h3><button class="btn-primary" data-add="education">Add Education</button></div>${adminTable(['Period','Title','Subtitle','Actions'], data.education.map((x, i) => [esc(x.period), `<strong>${esc(x.title)}</strong>`, esc(x.subtitle), rowActions('education', i)]))}`;
@@ -395,10 +546,10 @@
     editing = { type, id, isAdd };
     $('#editModalTitle').textContent = `${isAdd ? 'Add' : 'Edit'} ${type}`;
     $('#editModalFields').innerHTML = fieldsFor(type, id, isAdd);
-    $('#adminModal').hidden = false;
+    if ($('#adminModal')) $('#adminModal').hidden = false;
     document.body.classList.add('modal-open');
   }
-  function closeAdminModal() { $('#adminModal').hidden = true; document.body.classList.remove('modal-open'); editing = null; }
+  function closeAdminModal() { if ($('#adminModal')) $('#adminModal').hidden = true; document.body.classList.remove('modal-open'); editing = null; }
   function input(name, label, value = '', textarea = false) {
     return `<label>${esc(label)}${textarea ? `<textarea name="${esc(name)}">${esc(value)}</textarea>` : `<input name="${esc(name)}" value="${esc(value)}">`}</label>`;
   }
@@ -409,6 +560,7 @@
       const p = isAdd ? { title:'New Project', category:'Academic Project', image:'assets/project-astraea.png', short:'Short description', long:'Long description', tech:['Next.js'], live:'#', github:'#', featured:false } : data.projects.find(x => x.id === id);
       return `${input('title','Title',p.title)}${input('category','Category',p.category)}${input('image','Image Path',p.image)}${input('short','Short Description',p.short,true)}${input('long','Long Description',p.long,true)}${input('tech','Tech Stack (comma separated)',(p.tech||[]).join(', '))}${input('live','Live URL',p.live)}${input('github','GitHub URL',p.github)}<label>Featured<select name="featured"><option value="false" ${!p.featured?'selected':''}>No</option><option value="true" ${p.featured?'selected':''}>Yes</option></select></label>`;
     }
+    if (type === 'certificates') { const x = isAdd ? {title:'New Certificate', issuer:'Issuer', year:new Date().getFullYear(), category:'Technical Skills', file:'assets/certificates/files/laravel-php-development.pdf', thumbnail:'assets/certificates/thumbs/laravel-php-development.webp', fileType:'PDF', desc:'Short description', featured:false} : data.certificates[Number(id)]; return `${input('title','Certificate Title',x.title)}${input('issuer','Issuer',x.issuer)}${input('year','Year',x.year)}${input('category','Category',x.category)}${input('file','File URL',x.file)}${input('thumbnail','Thumbnail URL',x.thumbnail)}${input('fileType','File Type',x.fileType || 'PDF')}<label>Featured<select name="featured"><option value="false" ${!x.featured?'selected':''}>No</option><option value="true" ${x.featured?'selected':''}>Yes</option></select></label>${input('desc','Description',x.desc,true)}`; }
     if (type === 'education') { const x = isAdd ? {period:'2026', title:'New Education', subtitle:'Major', desc:'Description', tags:['Tag']} : data.education[Number(id)]; return `${input('period','Period',x.period)}${input('title','Title',x.title)}${input('subtitle','Subtitle',x.subtitle)}${input('desc','Description',x.desc,true)}${input('tags','Tags',x.tags.join(', '))}`; }
     if (type === 'skills') { const group = isAdd ? 'New Group' : id; return `${input('group','Category',group)}${input('items','Skills (comma separated)',isAdd ? 'Skill 1, Skill 2' : data.skills[group].join(', '),true)}`; }
     if (type === 'experience') { const x = isAdd ? {period:'Period', title:'New Experience', desc:'Description', tags:['Tag']} : data.experiences[Number(id)]; return `${input('period','Period',x.period)}${input('title','Title',x.title)}${input('desc','Description',x.desc,true)}${input('tags','Tags',x.tags.join(', '))}`; }
@@ -428,6 +580,7 @@
       if (item.featured) data.projects.forEach(p => p.featured = false);
       if (isAdd) data.projects.unshift(item); else Object.assign(data.projects.find(p => p.id === id), item);
     }
+    if (type === 'certificates') { const item = { id: isAdd ? uid() : (data.certificates[Number(id)]?.id || uid()), title: fd.title, issuer: fd.issuer, year: fd.year, category: fd.category, file: fd.file, thumbnail: fd.thumbnail, fileType: fd.fileType || 'PDF', desc: fd.desc, featured: fd.featured === 'true' }; if (!data.certificates) data.certificates = []; isAdd ? data.certificates.unshift(item) : Object.assign(data.certificates[Number(id)], item); }
     if (type === 'education') { const item = { period: fd.period, title: fd.title, subtitle: fd.subtitle, desc: fd.desc, tags: arr(fd.tags) }; isAdd ? data.education.push(item) : Object.assign(data.education[Number(id)], item); }
     if (type === 'skills') { if (!isAdd && id !== fd.group) delete data.skills[id]; data.skills[fd.group] = arr(fd.items); }
     if (type === 'experience') { const item = { period: fd.period, title: fd.title, desc: fd.desc, tags: arr(fd.tags) }; isAdd ? data.experiences.push(item) : Object.assign(data.experiences[Number(id)], item); }
@@ -437,6 +590,7 @@
   function deleteAdminItem(type, id) {
     if (!confirm('Delete this item?')) return;
     if (type === 'projects') data.projects = data.projects.filter(p => p.id !== id);
+    if (type === 'certificates') data.certificates.splice(Number(id), 1);
     if (type === 'education') data.education.splice(Number(id), 1);
     if (type === 'skills') delete data.skills[id];
     if (type === 'experience') data.experiences.splice(Number(id), 1);

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080503" />
+  <meta name="description" content="Login admin portfolio Zilan Zalilan." />
+  <title>Admin Login — Zilan Portfolio</title>
+  <link rel="icon" href="assets/profile-zilan.jpg" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="admin-login-page">
+  <div class="noise" aria-hidden="true"></div>
+  <div class="cursor" aria-hidden="true"></div>
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+  <div class="loader" id="loader" aria-label="Loading admin login">
+    <div class="loader-grid"></div>
+    <div class="loader-inner">
+      <span class="loader-tag">LOAD SHIELD</span>
+      <strong>Login gate</strong>
+      <div class="loader-bar"><span></span></div>
+      <small>profile • projects • cms</small>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <section id="adminApp" class="admin-app" hidden>
+    <div class="admin-login" id="adminLogin">
+      <a href="index.html" class="admin-back">← Back to portfolio</a>
+      <form id="loginForm" class="login-card">
+        <span class="brand-mark">ZZ</span>
+        <h1>Admin Control Room</h1>
+        <p>Masuk untuk mengelola profile Zilan, project, skill, pengalaman, blog, pesan, dan setting website.</p>
+        <label>Email<input name="email" type="email" value="admin@zilan.dev" required></label>
+        <label>Password<input name="password" type="password" value="zilan123" required></label>
+        <button class="btn-primary" type="submit">Login Admin</button>
+        <small>Demo: admin@zilan.dev / zilan123</small>
+      </form>
+    </div>
+  </section>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

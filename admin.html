@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080503" />
+  <meta name="description" content="Dashboard admin portfolio Zilan Zalilan." />
+  <title>Admin Dashboard — Zilan Portfolio</title>
+  <link rel="icon" href="assets/profile-zilan.jpg" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="admin-dashboard-page">
+  <div class="noise" aria-hidden="true"></div>
+  <div class="cursor" aria-hidden="true"></div>
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
+  <div class="loader" id="loader" aria-label="Loading admin dashboard">
+    <div class="loader-grid"></div>
+    <div class="loader-inner">
+      <span class="loader-tag">LOAD SHIELD</span>
+      <strong>Command room</strong>
+      <div class="loader-bar"><span></span></div>
+      <small>profile • projects • content • settings</small>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <section id="adminApp" class="admin-app" hidden>
+    <div class="admin-dashboard" id="adminDashboard" hidden>
+      <aside class="admin-sidebar">
+        <div class="admin-brand"><span class="brand-mark">ZZ</span><b>Admin</b></div>
+        <button data-admin-tab="overview" class="active">Overview</button>
+        <button data-admin-tab="profile">Profile</button>
+        <button data-admin-tab="projects">Projects</button>
+        <button data-admin-tab="certificates">Certificates</button>
+        <button data-admin-tab="education">Education</button>
+        <button data-admin-tab="skills">Skills</button>
+        <button data-admin-tab="experience">Experience</button>
+        <button data-admin-tab="blog">Blog</button>
+        <button data-admin-tab="messages">Messages</button>
+        <button data-admin-tab="settings">Settings</button>
+        <button id="logoutBtn" class="danger-btn">Logout</button>
+      </aside>
+      <div class="admin-main">
+        <header class="admin-top">
+          <div><small>Zilan Portfolio CMS</small><h2 id="adminTitle">Overview</h2></div>
+          <div class="admin-actions"><button class="hud-btn" id="adminThemeBtn">☾</button><a class="top-cta" href="index.html">Public Site</a></div>
+        </header>
+        <div id="adminContent" class="admin-content"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="modal" id="adminModal" hidden>
+    <div class="modal-backdrop" data-close-admin></div>
+    <form id="adminEditForm" class="admin-edit-modal" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close" data-close-admin>×</button>
+      <h2 id="editModalTitle">Edit</h2>
+      <div id="editModalFields"></div>
+      <button class="btn-primary" type="submit">Save Changes</button>
+    </form>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
